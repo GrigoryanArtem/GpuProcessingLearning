@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using GPL.OpenGLApp.Core;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
@@ -7,32 +8,30 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 namespace GPL.OpenGLApp;
 public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new () {
             APIVersion = new Version(4, 6),
+            Flags = ContextFlags.Debug,
             ClientSize = (width, height),
             Vsync = VSyncMode.On,
 })
 {
     private float[] _triangleV = [];
-    private int _triangleVBO;
-    private int _triangleVAO;
 
-    private Shaders _shaders;
+    private VboF _triangleVBO;
+    private Vao _triangleVAO;
+
+    private ShaderProgram _defaultShader;
     private float _time;
 
     protected override void OnLoad()
     {
         base.OnLoad();
-
         Console.WriteLine($"OpenGL: {APIVersion}");
 
         Console.Error.WriteLine("Shaders loading...");
-        _shaders = new Shaders("shaders/default.vert", "shaders/default.frag");
+        _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
         Console.Error.WriteLine("Shaders loaded");
 
-
         InitTriangle();
-
         GL.ClearColor(new Color4(30, 35, 49, 255));
-        _shaders.Use();
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -47,8 +46,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += (float)args.Time;
 
-        var location = GL.GetUniformLocation(_shaders.Handle, "time");
-        GL.Uniform1(location, _time);
+        _defaultShader.SetFloat(ShadersConstants.TIME, _time);
+        _defaultShader.Use();
 
         DrawTriangle();
 
@@ -64,28 +63,27 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
     private void InitTriangle()
     {
-        _triangleV = [
+        _triangleV = 
+        [
             -0.866f, 0.75f, 0.0f,   .5f, 0f, 1f,
              0.866f, 0.75f, 0.0f,   0f, 1f, .5f,
              0.0f,   -0.5f, 0.0f,   1f, .5f, 0f,
         ];
 
-        _triangleVBO = GL.GenBuffer();
-        _triangleVAO = GL.GenVertexArray();
+        _triangleVBO = new(_triangleV);
+        _triangleVAO = new();
 
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _triangleVBO);
-        GL.BufferData(BufferTarget.ArrayBuffer, _triangleV.Length * sizeof(float), _triangleV, BufferUsageHint.StaticDraw);
+        _triangleVAO.Bind();
+        _triangleVAO.Link(_triangleVBO, 0, 3, VertexAttribPointerType.Float, 6 * sizeof(float), 0);
+        _triangleVAO.Link(_triangleVBO, 1, 3, VertexAttribPointerType.Float, 6 * sizeof(float), 3 * sizeof(float));
 
-        GL.BindVertexArray(_triangleVAO);
-        GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-        GL.EnableVertexAttribArray(0);
-
-        GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-        GL.EnableVertexAttribArray(1);
+        _triangleVAO.Unbind();
+        _triangleVBO.Unbind();
     }
 
     private void DrawTriangle()
     {
+        _triangleVAO.Bind();
         GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
     }
 
@@ -93,9 +91,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     {
         base.Dispose();
 
-        _shaders.Dispose();
-
-        GL.DeleteBuffer(_triangleVBO);
-        GL.DeleteBuffer(_triangleVAO);
+        _defaultShader.Dispose();
+        _triangleVAO.Dispose();
+        _triangleVBO.Dispose();
     }
 }

@@ -1,11 +1,11 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 
 namespace GPL.OpenGLApp;
-public class Shaders : IDisposable
+public class ShaderProgram : IDisposable
 {
     private bool _disposed = false;
 
-    public Shaders(string vertexPath, string fragmentPath)
+    public ShaderProgram(string vertexPath, string fragmentPath)
     {
         Handle = CreateProgram(vertexPath, fragmentPath);
     }
@@ -15,6 +15,12 @@ public class Shaders : IDisposable
     public void Use()
     {
         GL.UseProgram(Handle);
+    }
+
+    public void SetFloat(string name, float value)
+    {
+        var loc = GL.GetUniformLocation(Handle, name);
+        GL.Uniform1(loc, value);
     }
 
     #region Dispose
@@ -34,7 +40,7 @@ public class Shaders : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    ~Shaders()
+    ~ShaderProgram()
     {
         if (_disposed == false)
         {

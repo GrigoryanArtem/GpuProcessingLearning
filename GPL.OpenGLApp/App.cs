@@ -33,23 +33,26 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         LoadShaders();
 
-        StbImage.stbi_set_flip_vertically_on_load(1);
+        StbImage.stbi_set_flip_vertically_on_load(0);
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
         texture1 = Texture.Load("textures/awesomeface.png");
 
         InitTriangle();
+
+        GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
 
+    int angle = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {        
         base.OnUpdateFrame(args);
 
         if (KeyboardState.IsKeyPressed(Keys.Escape))        
             Close();
-        
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += (float)args.Time;
@@ -63,11 +66,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture1.Bind(TextureUnit.Texture1);
         _defaultShader.SetInt("texture1", 1);
 
-        //Matrix4 rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(angle++ % 360));
-        //Matrix4 scale = Matrix4.CreateScale(2f);
-        //Matrix4 trans = rotation * scale * ortho;
-
-        Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+        Matrix4 model = Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(angle++)) * Matrix4.CreateRotationY((float)MathHelper.DegreesToRadians(angle++));        
         Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
         Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), width / height, 0.1f, 100.0f);
 
@@ -98,9 +97,47 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     {
         _triangleV = 
         [
-            -0.866f, 0.75f, 0.0f,   .5f,  0f,  1f,    0f, 1f,
-             0.866f, 0.75f, 0.0f,    0f,  1f, .5f,    1f, 1f,
-               0.0f, -0.5f, 0.0f,    1f, .5f,  0f,    .5f, 0f
+             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f,  0.0f, 0.0f,
+              0.5f, -0.5f, -0.5f, 0f, 1f, 0f,  1.0f, 0.0f,
+              0.5f,  0.5f, -0.5f, 0f, 0f, 1f,  1.0f, 1.0f,
+              0.5f,  0.5f, -0.5f, 1f, 0f, 0f,  1.0f, 1.0f,
+             -0.5f,  0.5f, -0.5f, 0f, 1f, 0f,  0.0f, 1.0f,
+             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f,  0.0f, 0.0f,
+             
+             -0.5f, -0.5f,  0.5f, 1f, 0f, 0f,  0.0f, 0.0f,
+              0.5f, -0.5f,  0.5f, 0f, 1f, 0f,  1.0f, 0.0f,
+              0.5f,  0.5f,  0.5f, 0f, 0f, 1f,  1.0f, 1.0f,
+              0.5f,  0.5f,  0.5f, 1f, 0f, 0f,  1.0f, 1.0f,
+             -0.5f,  0.5f,  0.5f, 0f, 1f, 0f,  0.0f, 1.0f,
+             -0.5f, -0.5f,  0.5f, 0f, 0f, 1f,  0.0f, 0.0f,
+             
+             -0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
+             -0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
+             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
+             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
+             -0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
+             -0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
+             
+              0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
+              0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
+              0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
+              0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
+              0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
+              0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
+             
+             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
+              0.5f, -0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
+              0.5f, -0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
+              0.5f, -0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
+             -0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
+             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
+             
+             -0.5f,  0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
+              0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
+              0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
+              0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
+             -0.5f,  0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
+             -0.5f,  0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f
         ];
 
         _triangleVBO = new(_triangleV);
@@ -119,7 +156,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private void DrawTriangle()
     {
         _triangleVAO.Bind();
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
     }
 
     public override void Dispose()

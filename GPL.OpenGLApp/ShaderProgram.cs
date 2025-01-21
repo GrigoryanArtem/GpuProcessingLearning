@@ -1,4 +1,5 @@
 ﻿using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 
 namespace GPL.OpenGLApp;
 public class ShaderProgram : IDisposable
@@ -27,6 +28,12 @@ public class ShaderProgram : IDisposable
     {
         var loc = GL.GetUniformLocation(Handle, name);
         GL.Uniform1(loc, value);
+    }
+
+    public void SetMat4(string name, Matrix4 value)
+    {
+        var loc = GL.GetUniformLocation(Handle, name);
+        GL.UniformMatrix4(loc, true, ref value);
     }
 
     #region Dispose

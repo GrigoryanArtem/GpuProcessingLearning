@@ -22,8 +22,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private ShaderProgram _defaultShader;
     private float _time;
 
-    private int texture0;
-    private int texture1;
+    private Texture texture0;
+    private Texture texture1;
 
     protected override void OnLoad()
     {
@@ -33,13 +33,15 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         LoadShaders();
 
         StbImage.stbi_set_flip_vertically_on_load(1);
-        texture0 = LoadTextures("textures/floor_basecolor.png");
-        texture1 = LoadTextures("textures/awesomeface.png");
+
+        texture0 = Texture.Load("textures/floor_basecolor.png");
+        texture1 = Texture.Load("textures/awesomeface.png");
 
         InitTriangle();
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
 
+    int angle = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {        
         base.OnUpdateFrame(args);
@@ -55,13 +57,17 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _defaultShader.SetFloat(ShadersConstants.TIME, _time);
         _defaultShader.Use();
 
-        GL.ActiveTexture(TextureUnit.Texture0);
-        GL.BindTexture(TextureTarget.Texture2D, texture0);
+        texture0.Bind(TextureUnit.Texture0);
         _defaultShader.SetInt("texture0", 0);
 
-        GL.ActiveTexture(TextureUnit.Texture1);
-        GL.BindTexture(TextureTarget.Texture2D, texture1);
+        texture1.Bind(TextureUnit.Texture1);
         _defaultShader.SetInt("texture1", 1);
+
+        Matrix4 rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(angle++ % 360));
+        Matrix4 scale = Matrix4.CreateScale(2f);
+        Matrix4 trans = rotation * scale;
+
+        _defaultShader.SetMat4("transform", trans);
 
         DrawTriangle();
 
@@ -80,31 +86,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Console.Error.WriteLine("Shaders loading...");
         _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
         Console.Error.WriteLine("Shaders loaded");
-    }
-
-    private int LoadTextures(string path)
-    {
-        
-        var image = ImageResult.FromStream(File.OpenRead(path),
-            ColorComponents.RedGreenBlueAlpha);
-
-        var texture = GL.GenTexture();
-
-        GL.BindTexture(TextureTarget.Texture2D, texture);
-
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.NearestMipmapLinear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
-            image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
-        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-
-        GL.BindTexture(TextureTarget.Texture2D, 0);
-
-        return texture;
     }
 
     private void InitTriangle()

@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using StbImageSharp;
+using System.Runtime;
 
 namespace GPL.OpenGLApp;
 public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new () {
@@ -41,7 +42,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
 
-    int angle = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {        
         base.OnUpdateFrame(args);
@@ -63,11 +63,17 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture1.Bind(TextureUnit.Texture1);
         _defaultShader.SetInt("texture1", 1);
 
-        Matrix4 rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(angle++ % 360));
-        Matrix4 scale = Matrix4.CreateScale(2f);
-        Matrix4 trans = rotation * scale;
+        //Matrix4 rotation = Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(angle++ % 360));
+        //Matrix4 scale = Matrix4.CreateScale(2f);
+        //Matrix4 trans = rotation * scale * ortho;
 
-        _defaultShader.SetMat4("transform", trans);
+        Matrix4 model = Matrix4.CreateRotationX(MathHelper.DegreesToRadians(-55.0f));
+        Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
+        Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), width / height, 0.1f, 100.0f);
+
+        _defaultShader.SetMat4("transform", model);
+        _defaultShader.SetMat4("view", view);
+        _defaultShader.SetMat4("projection", projection);
 
         DrawTriangle();
 

@@ -1,6 +1,5 @@
 #version 460 core
 
-in vec3 fCol;
 in vec2 fTextCoord;
 
 out vec4 FragColor;
@@ -20,5 +19,5 @@ void main()
 	vec4 tex0_color = texture(texture0, fTextCoord);
 	vec4 tex1_color = texture(texture1, fTextCoord);
 
-	FragColor = mix(tex0_color, tex1_color, 0.33) * 2 * vec4(shift(fCol.x, -3.14 / 3), shift(fCol.y, 0), shift(fCol.z, 3.14 / 3), 1.0);
+	FragColor = mix(tex0_color, tex1_color, 0.33);
 }

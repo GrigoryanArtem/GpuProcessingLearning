@@ -1,11 +1,11 @@
 ﻿using GPL.OpenGLApp.Core;
+using GPL.OpenGLApp.Geometry;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using StbImageSharp;
-using System.Runtime;
 
 namespace GPL.OpenGLApp;
 public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new () {
@@ -14,14 +14,11 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             ClientSize = (width, height),
             Vsync = VSyncMode.On,
 })
-{
-    private float[] _triangleV = [];
-
-    private VboF _triangleVBO;
-    private Vao _triangleVAO;
-
+{    
+    private Cube _cube;
+    private Camera _camera;
     private ShaderProgram _defaultShader;
-    private float _time;
+    private double _time;
 
     private Texture texture0;
     private Texture texture1;
@@ -33,12 +30,13 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         LoadShaders();
 
-        StbImage.stbi_set_flip_vertically_on_load(0);
+        StbImage.stbi_set_flip_vertically_on_load(1);
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
         texture1 = Texture.Load("textures/awesomeface.png");
 
-        InitTriangle();
+        _camera = new Camera(Vector3.Zero, width / height);
+        _cube = new Cube();
 
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
@@ -55,10 +53,12 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
-        _time += (float)args.Time;
+        _time += args.Time;
 
-        _defaultShader.SetFloat(ShadersConstants.TIME, _time);
+        _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
         _defaultShader.Use();
+
+        HandleInput((float)args.Time);
 
         texture0.Bind(TextureUnit.Texture0);
         _defaultShader.SetInt("texture0", 0);
@@ -66,15 +66,13 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture1.Bind(TextureUnit.Texture1);
         _defaultShader.SetInt("texture1", 1);
 
-        Matrix4 model = Matrix4.CreateRotationX((float)MathHelper.DegreesToRadians(angle++)) * Matrix4.CreateRotationY((float)MathHelper.DegreesToRadians(angle++));        
-        Matrix4 view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
-        Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(45.0f), width / height, 0.1f, 100.0f);
+        _cube.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, MathHelper.DegreesToRadians(angle++));
+        _defaultShader.SetMat4("transform", _cube.GetTransform());        
 
-        _defaultShader.SetMat4("transform", model);
-        _defaultShader.SetMat4("view", view);
-        _defaultShader.SetMat4("projection", projection);
+        _defaultShader.SetMat4("view", _camera.GetViewMatrix());
+        _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        DrawTriangle();
+        _cube.Draw();
 
         SwapBuffers();
     }
@@ -93,78 +91,91 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Console.Error.WriteLine("Shaders loaded");
     }
 
-    private void InitTriangle()
+    #region Camera control
+
+    protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        _triangleV = 
-        [
-             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f,  0.0f, 0.0f,
-              0.5f, -0.5f, -0.5f, 0f, 1f, 0f,  1.0f, 0.0f,
-              0.5f,  0.5f, -0.5f, 0f, 0f, 1f,  1.0f, 1.0f,
-              0.5f,  0.5f, -0.5f, 1f, 0f, 0f,  1.0f, 1.0f,
-             -0.5f,  0.5f, -0.5f, 0f, 1f, 0f,  0.0f, 1.0f,
-             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f,  0.0f, 0.0f,
-             
-             -0.5f, -0.5f,  0.5f, 1f, 0f, 0f,  0.0f, 0.0f,
-              0.5f, -0.5f,  0.5f, 0f, 1f, 0f,  1.0f, 0.0f,
-              0.5f,  0.5f,  0.5f, 0f, 0f, 1f,  1.0f, 1.0f,
-              0.5f,  0.5f,  0.5f, 1f, 0f, 0f,  1.0f, 1.0f,
-             -0.5f,  0.5f,  0.5f, 0f, 1f, 0f,  0.0f, 1.0f,
-             -0.5f, -0.5f,  0.5f, 0f, 0f, 1f,  0.0f, 0.0f,
-             
-             -0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
-             -0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
-             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
-             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
-             -0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
-             -0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
-             
-              0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
-              0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
-              0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
-              0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
-              0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
-              0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
-             
-             -0.5f, -0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
-              0.5f, -0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
-              0.5f, -0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
-              0.5f, -0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
-             -0.5f, -0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
-             -0.5f, -0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f,
-             
-             -0.5f,  0.5f, -0.5f, 1f, 0f, 0f, 0.0f, 1.0f,
-              0.5f,  0.5f, -0.5f, 0f, 1f, 0f, 1.0f, 1.0f,
-              0.5f,  0.5f,  0.5f, 0f, 0f, 1f, 1.0f, 0.0f,
-              0.5f,  0.5f,  0.5f, 1f, 0f, 0f, 1.0f, 0.0f,
-             -0.5f,  0.5f,  0.5f, 0f, 1f, 0f, 0.0f, 0.0f,
-             -0.5f,  0.5f, -0.5f, 0f, 0f, 1f, 0.0f, 1.0f
-        ];
+        base.OnMouseWheel(e);
 
-        _triangleVBO = new(_triangleV);
-        _triangleVAO = new();
-
-        _triangleVAO.Bind();
-
-        _triangleVAO.Link(_triangleVBO, 0, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 0);
-        _triangleVAO.Link(_triangleVBO, 1, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 3 * sizeof(float));
-        _triangleVAO.Link(_triangleVBO, 2, 2, VertexAttribPointerType.Float, 8 * sizeof(float), 6 * sizeof(float));
-
-        _triangleVAO.Unbind();
-        _triangleVBO.Unbind();
+        _camera.Fov -= e.OffsetY;
     }
 
-    private void DrawTriangle()
+    private bool _firstMove = true;
+    private Vector2 _lastPos;    
+
+    private void HandleInput(float dt)
     {
-        _triangleVAO.Bind();
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+        var input = KeyboardState;
+
+        if (input.IsKeyDown(Keys.Escape))
+        {
+            Close();
+        }
+
+        const float cameraSpeed = 1.5f;
+        const float sensitivity = 0.2f;
+
+        if (input.IsKeyDown(Keys.W))
+        {
+            _camera.Position += _camera.Front * cameraSpeed * dt; // Forward
+        }
+
+        if (input.IsKeyDown(Keys.S))
+        {
+            _camera.Position -= _camera.Front * cameraSpeed * dt; // Backwards
+        }
+        if (input.IsKeyDown(Keys.A))
+        {
+            _camera.Position -= _camera.Right * cameraSpeed * dt; // Left
+        }
+        if (input.IsKeyDown(Keys.D))
+        {
+            _camera.Position += _camera.Right * cameraSpeed * dt; // Right
+        }
+        if (input.IsKeyDown(Keys.Space))
+        {
+            _camera.Position += _camera.Up * cameraSpeed * dt; // Up
+        }
+        if (input.IsKeyDown(Keys.LeftShift))
+        {
+            _camera.Position -= _camera.Up * cameraSpeed * dt; // Down
+        }
+
+        // Get the mouse state
+        var mouse = MouseState;
+
+        if (mouse.IsButtonDown(MouseButton.Left))
+        {
+            if (_firstMove) // This bool variable is initially set to true.
+            {
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+                _firstMove = false;
+            }
+            else if (mouse.IsButtonDown(MouseButton.Left))
+            {
+                // Calculate the offset of the mouse position
+                var deltaX = mouse.X - _lastPos.X;
+                var deltaY = mouse.Y - _lastPos.Y;
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+
+                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
+                _camera.Yaw += deltaX * sensitivity;
+                _camera.Pitch -= deltaY * sensitivity; // Reversed since y-coordinates range from bottom to top
+            }
+        }
+        else
+        {
+            _firstMove = true;
+        }
     }
+
+    #endregion
 
     public override void Dispose()
     {
         base.Dispose();
 
         _defaultShader.Dispose();
-        _triangleVAO.Dispose();
-        _triangleVBO.Dispose();
+        _cube.Dispose();
     }
 }

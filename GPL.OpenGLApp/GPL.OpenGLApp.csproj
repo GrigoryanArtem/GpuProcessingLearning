@@ -10,6 +10,11 @@
   <ItemGroup>
     <None Remove="shaders\default.frag" />
     <None Remove="shaders\default.vert" />
+    <None Remove="textures\floor_ambient_occlusion.png" />
+    <None Remove="textures\floor_basecolor.png" />
+    <None Remove="textures\floor_height.png" />
+    <None Remove="textures\floor_normal.png" />
+    <None Remove="textures\floor_roughness.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,14 +24,26 @@
     <Content Include="shaders\default.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="textures\floor_ambient_occlusion.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\floor_basecolor.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\floor_height.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\floor_normal.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\floor_roughness.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="OpenTK" Version="4.9.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="textures\" />
+    <PackageReference Include="StbImageSharp" Version="2.30.15" />
   </ItemGroup>
 
 </Project>

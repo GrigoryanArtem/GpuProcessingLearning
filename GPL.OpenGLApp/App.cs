@@ -4,6 +4,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using StbImageSharp;
 
 namespace GPL.OpenGLApp;
 public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new () {
@@ -26,9 +27,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         base.OnLoad();
         Console.WriteLine($"OpenGL: {APIVersion}");
 
-        Console.Error.WriteLine("Shaders loading...");
-        _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
-        Console.Error.WriteLine("Shaders loaded");
+        LoadShaders();
+        LoadTextures();
 
         InitTriangle();
         GL.ClearColor(new Color4(30, 35, 49, 255));
@@ -61,21 +61,50 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         GL.Viewport(0, 0, e.Width, e.Height);
     }
 
+    private void LoadShaders()
+    {
+        Console.Error.WriteLine("Shaders loading...");
+        _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
+        Console.Error.WriteLine("Shaders loaded");
+    }
+
+    private void LoadTextures()
+    {
+        StbImage.stbi_set_flip_vertically_on_load(1);
+        var image = ImageResult.FromStream(File.OpenRead("textures/floor_basecolor.png"),
+            ColorComponents.RedGreenBlueAlpha);
+
+        var texture = GL.GenTexture();
+
+        GL.BindTexture(TextureTarget.Texture2D, texture);
+
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
+            image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
+    }
+
     private void InitTriangle()
     {
         _triangleV = 
         [
-            -0.866f, 0.75f, 0.0f,   .5f, 0f, 1f,
-             0.866f, 0.75f, 0.0f,   0f, 1f, .5f,
-             0.0f,   -0.5f, 0.0f,   1f, .5f, 0f,
+            -0.866f, 0.75f, 0.0f,   .5f,  0f,  1f,    0f, 1f,
+             0.866f, 0.75f, 0.0f,    0f,  1f, .5f,   .5f, 0f,
+               0.0f, -0.5f, 0.0f,    1f, .5f,  0f,    1f, 1f,
         ];
 
         _triangleVBO = new(_triangleV);
         _triangleVAO = new();
 
         _triangleVAO.Bind();
-        _triangleVAO.Link(_triangleVBO, 0, 3, VertexAttribPointerType.Float, 6 * sizeof(float), 0);
-        _triangleVAO.Link(_triangleVBO, 1, 3, VertexAttribPointerType.Float, 6 * sizeof(float), 3 * sizeof(float));
+
+        _triangleVAO.Link(_triangleVBO, 0, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 0);
+        _triangleVAO.Link(_triangleVBO, 1, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 3 * sizeof(float));
+        _triangleVAO.Link(_triangleVBO, 2, 2, VertexAttribPointerType.Float, 8 * sizeof(float), 6 * sizeof(float));
 
         _triangleVAO.Unbind();
         _triangleVBO.Unbind();

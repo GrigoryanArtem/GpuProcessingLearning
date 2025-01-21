@@ -14,9 +14,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             ClientSize = (width, height),
             Vsync = VSyncMode.On,
 })
-{    
-    private Cube _cube;
+{
+    private Cube[] cubes = [];
     private Camera _camera;
+    private Plane _plane;
     private ShaderProgram _defaultShader;
     private double _time;
 
@@ -33,16 +34,29 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         StbImage.stbi_set_flip_vertically_on_load(1);
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
-        texture1 = Texture.Load("textures/awesomeface.png");
+        texture1 = Texture.Load("textures/wood_planks_diff_1k.png");
 
-        _camera = new Camera(Vector3.Zero, width / height);
-        _cube = new Cube();
+        _camera = new Camera(new(0f, 5f, 0f), width / height);
+
+        cubes = Enumerable.Range(0, 10).Select(_ => new Cube()
+        {
+            Position = new Vector3
+            (
+                x: (float)Random.Shared.NextDouble() * 10f - 5f,
+                y: .501f,
+                z: (float)Random.Shared.NextDouble() * 10f - 5f
+            )
+        }).ToArray();
+        _plane = new Plane()
+        {
+            Scale = new(10, 0, 10)
+        };
 
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
 
-    int angle = 0;
+    float angle = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {        
         base.OnUpdateFrame(args);
@@ -60,19 +74,29 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         HandleInput((float)args.Time);
 
-        texture0.Bind(TextureUnit.Texture0);
+
+        texture1.Bind(TextureUnit.Texture0);
         _defaultShader.SetInt("texture0", 0);
-
-        texture1.Bind(TextureUnit.Texture1);
-        _defaultShader.SetInt("texture1", 1);
-
-        _cube.Rotation = Quaternion.FromAxisAngle(Vector3.UnitY, MathHelper.DegreesToRadians(angle++));
-        _defaultShader.SetMat4("transform", _cube.GetTransform());        
 
         _defaultShader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        _cube.Draw();
+        _defaultShader.SetVec2("texScale", Vector2.One);
+
+        foreach (var cube in cubes)
+        {
+            _defaultShader.SetMat4("transform", cube.GetTransform());
+            cube.Draw();
+        }
+
+        texture0.Bind(TextureUnit.Texture0);
+        _defaultShader.SetInt("texture0", 0);
+
+        _defaultShader.SetVec2("texScale", Vector2.One * 10f);
+        _defaultShader.SetMat4("transform", _plane.GetTransform());
+        _plane.Draw();
+
+        angle += .1f;
 
         SwapBuffers();
     }
@@ -80,6 +104,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         base.OnFramebufferResize(e);
+
+        _camera.AspectRatio = e.Width / e.Height;
 
         GL.Viewport(0, 0, e.Width, e.Height);
     }
@@ -101,7 +127,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     }
 
     private bool _firstMove = true;
-    private Vector2 _lastPos;    
+    private Vector2 _lastPos;
 
     private void HandleInput(float dt)
     {
@@ -176,6 +202,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         base.Dispose();
 
         _defaultShader.Dispose();
-        _cube.Dispose();
+        Array.ForEach(cubes, c => c.Dispose());
     }
 }

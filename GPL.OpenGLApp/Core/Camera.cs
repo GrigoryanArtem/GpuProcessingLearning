@@ -20,7 +20,7 @@ public class Camera
     }
 
     public Vector3 Position { get; set; }
-    public float AspectRatio { private get; set; }
+    public float AspectRatio { get; set; }
 
     public Vector3 Front => _front;
     public Vector3 Up => _up;

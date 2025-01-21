@@ -2,12 +2,13 @@
 
 namespace GPL.OpenGLApp.Core;
 
-public class VboF : IDisposable
+public class Vbo : IDisposable
 {    
-    public VboF(float[] vertices)
+    public Vbo(float[] vertices)
     {
-        Id = GL.GenBuffer();
-        GL.BindBuffer(BufferTarget.ArrayBuffer, Id);
+        Handle = GL.GenBuffer();
+
+        Bind();
         GL.BufferData
         (
             BufferTarget.ArrayBuffer, 
@@ -17,16 +18,16 @@ public class VboF : IDisposable
         );
     }
 
-    public int Id { get; }
+    public int Handle { get; }
 
     public void Bind()
-        => GL.BindBuffer(BufferTarget.ArrayBuffer, Id);
+        => GL.BindBuffer(BufferTarget.ArrayBuffer, Handle);
 
     public void Unbind()
         => GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 
     public void Dispose()
     {
-        GL.DeleteBuffer(Id);
+        GL.DeleteBuffer(Handle);
     }
 }

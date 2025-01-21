@@ -22,13 +22,19 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private ShaderProgram _defaultShader;
     private float _time;
 
+    private int texture0;
+    private int texture1;
+
     protected override void OnLoad()
     {
         base.OnLoad();
         Console.WriteLine($"OpenGL: {APIVersion}");
 
         LoadShaders();
-        LoadTextures();
+
+        StbImage.stbi_set_flip_vertically_on_load(1);
+        texture0 = LoadTextures("textures/floor_basecolor.png");
+        texture1 = LoadTextures("textures/awesomeface.png");
 
         InitTriangle();
         GL.ClearColor(new Color4(30, 35, 49, 255));
@@ -49,6 +55,14 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _defaultShader.SetFloat(ShadersConstants.TIME, _time);
         _defaultShader.Use();
 
+        GL.ActiveTexture(TextureUnit.Texture0);
+        GL.BindTexture(TextureTarget.Texture2D, texture0);
+        _defaultShader.SetInt("texture0", 0);
+
+        GL.ActiveTexture(TextureUnit.Texture1);
+        GL.BindTexture(TextureTarget.Texture2D, texture1);
+        _defaultShader.SetInt("texture1", 1);
+
         DrawTriangle();
 
         SwapBuffers();
@@ -68,10 +82,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Console.Error.WriteLine("Shaders loaded");
     }
 
-    private void LoadTextures()
+    private int LoadTextures(string path)
     {
-        StbImage.stbi_set_flip_vertically_on_load(1);
-        var image = ImageResult.FromStream(File.OpenRead("textures/floor_basecolor.png"),
+        
+        var image = ImageResult.FromStream(File.OpenRead(path),
             ColorComponents.RedGreenBlueAlpha);
 
         var texture = GL.GenTexture();
@@ -81,11 +95,16 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.NearestMipmapLinear);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
             image.Width, image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, image.Data);
+        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+        GL.BindTexture(TextureTarget.Texture2D, 0);
+
+        return texture;
     }
 
     private void InitTriangle()
@@ -93,8 +112,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _triangleV = 
         [
             -0.866f, 0.75f, 0.0f,   .5f,  0f,  1f,    0f, 1f,
-             0.866f, 0.75f, 0.0f,    0f,  1f, .5f,   .5f, 0f,
-               0.0f, -0.5f, 0.0f,    1f, .5f,  0f,    1f, 1f,
+             0.866f, 0.75f, 0.0f,    0f,  1f, .5f,    1f, 1f,
+               0.0f, -0.5f, 0.0f,    1f, .5f,  0f,    .5f, 0f
         ];
 
         _triangleVBO = new(_triangleV);

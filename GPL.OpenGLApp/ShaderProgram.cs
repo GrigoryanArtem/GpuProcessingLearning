@@ -23,6 +23,12 @@ public class ShaderProgram : IDisposable
         GL.Uniform1(loc, value);
     }
 
+    public void SetInt(string name, int value)
+    {
+        var loc = GL.GetUniformLocation(Handle, name);
+        GL.Uniform1(loc, value);
+    }
+
     #region Dispose
 
     private void Dispose(bool disposing)

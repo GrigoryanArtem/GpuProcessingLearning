@@ -5,8 +5,10 @@ in vec2 fTextCoord;
 
 out vec4 FragColor;
 
-uniform sampler2D texture0;
 uniform float time;
+
+uniform sampler2D texture0;
+uniform sampler2D texture1;
 
 float shift(float val, float offset)
 {
@@ -15,5 +17,8 @@ float shift(float val, float offset)
 
 void main()
 {
-	FragColor = texture(texture0, fTextCoord) * 2 * vec4(shift(fCol.x, -3.14 / 3), shift(fCol.y, 0), shift(fCol.z, 3.14 / 3), 1.0);
+	vec4 tex0_color = texture(texture0, fTextCoord);
+	vec4 tex1_color = texture(texture1, fTextCoord);
+
+	FragColor = mix(tex0_color, tex1_color, 0.5) * 2 * vec4(shift(fCol.x, -3.14 / 3), shift(fCol.y, 0), shift(fCol.z, 3.14 / 3), 1.0);
 }

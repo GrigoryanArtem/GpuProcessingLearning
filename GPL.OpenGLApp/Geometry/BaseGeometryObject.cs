@@ -18,18 +18,7 @@ public abstract class BaseGeometryObject : IGeometryObject
         Mesh = vertices;
         Indices = indices;
 
-        VBO = new(Mesh);
-        VAO = new();
-        EBO = new(Indices);
-
-        VAO.Bind();
-
-        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, 5 * sizeof(float), 0);
-        VAO.Link(VBO, 1, 2, VertexAttribPointerType.Float, 5 * sizeof(float), 3 * sizeof(float));
-
-        VAO.Unbind();
-        VBO.Unbind();
-        EBO.Unbind();
+        BuildObject();
 
         Scale = Vector3.One;
         Position = Vector3.Zero;
@@ -62,5 +51,26 @@ public abstract class BaseGeometryObject : IGeometryObject
         var scale = Matrix4.CreateScale(Scale);
 
         return rotation * scale * translation;
+    }
+
+    protected virtual void BuildObject()
+    {
+        VBO = new(Mesh);
+        VAO = new();
+        EBO = new(Indices);
+
+        VAO.Bind();
+
+        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 0);
+        VAO.Link(VBO, 1, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 3 * sizeof(float));
+        VAO.Link(VBO, 2, 2, VertexAttribPointerType.Float, 8 * sizeof(float), 6 * sizeof(float));
+
+        VAO.Unbind();
+        VBO.Unbind();
+        EBO.Unbind();
+
+        Scale = Vector3.One;
+        Position = Vector3.Zero;
+        Rotation = Quaternion.Identity;
     }
 }

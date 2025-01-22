@@ -16,9 +16,14 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 })
 {
     private Cube[] cubes = [];
+    private LightCube _light;
     private Camera _camera;
     private Plane _plane;
+
     private ShaderProgram _defaultShader;
+    private ShaderProgram _lightShader;
+
+
     private double _time;
 
     private Texture texture0;
@@ -36,7 +41,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture0 = Texture.Load("textures/floor_basecolor.png");
         texture1 = Texture.Load("textures/wood_planks_diff_1k.png");
 
-        _camera = new Camera(new(0f, 5f, 0f), width / height);
+        _camera = new Camera(new(0f, 5f, 0f), (float)width / height);
 
         cubes = Enumerable.Range(0, 10).Select(_ => new Cube()
         {
@@ -47,9 +52,15 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
                 z: (float)Random.Shared.NextDouble() * 10f - 5f
             )
         }).ToArray();
+
         _plane = new Plane()
         {
             Scale = new(10, 0, 10)
+        };
+
+        _light = new LightCube()
+        {
+            Position = new Vector3(3f, 2f, 3f)
         };
 
         GL.Enable(EnableCap.DepthTest);
@@ -69,8 +80,9 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
 
-        _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
         _defaultShader.Use();
+        _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
+        _defaultShader.SetVec4("light_color", new(1.0f, 0.0f, 0.0f, 1.0f));
 
         HandleInput((float)args.Time);
 
@@ -81,20 +93,24 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _defaultShader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        _defaultShader.SetVec2("texScale", Vector2.One);
+        _defaultShader.SetVec2("uv_scale", Vector2.One);
 
         foreach (var cube in cubes)
-        {
-            _defaultShader.SetMat4("transform", cube.GetTransform());
-            cube.Draw();
-        }
+            Draw(_defaultShader, cube);
 
         texture0.Bind(TextureUnit.Texture0);
         _defaultShader.SetInt("texture0", 0);
 
-        _defaultShader.SetVec2("texScale", Vector2.One * 10f);
-        _defaultShader.SetMat4("transform", _plane.GetTransform());
-        _plane.Draw();
+        _defaultShader.SetVec2("uv_scale", Vector2.One * 10f);
+        Draw(_defaultShader, _plane);
+
+        _lightShader.Use();
+
+        _lightShader.SetVec4("light_color", new(1.0f, 0.0f, 0.0f, 1.0f));
+        _lightShader.SetMat4("view", _camera.GetViewMatrix());
+        _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
+
+        Draw(_lightShader, _light);
 
         angle += .1f;
 
@@ -105,15 +121,22 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     {
         base.OnFramebufferResize(e);
 
-        _camera.AspectRatio = e.Width / e.Height;
+        _camera.AspectRatio = (float)e.Width / e.Height;
 
         GL.Viewport(0, 0, e.Width, e.Height);
+    }
+
+    private static void Draw(ShaderProgram shader, IGeometryObject geometry)
+    {
+        shader.SetMat4("transform", geometry.GetTransform());
+        geometry.Draw();
     }
 
     private void LoadShaders()
     {
         Console.Error.WriteLine("Shaders loading...");
         _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
+        _lightShader = new ShaderProgram("shaders/light.vert", "shaders/light.frag");
         Console.Error.WriteLine("Shaders loaded");
     }
 
@@ -143,50 +166,47 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         if (input.IsKeyDown(Keys.W))
         {
-            _camera.Position += _camera.Front * cameraSpeed * dt; // Forward
+            _camera.Position += _camera.Front * cameraSpeed * dt; 
         }
 
         if (input.IsKeyDown(Keys.S))
         {
-            _camera.Position -= _camera.Front * cameraSpeed * dt; // Backwards
+            _camera.Position -= _camera.Front * cameraSpeed * dt; 
         }
         if (input.IsKeyDown(Keys.A))
         {
-            _camera.Position -= _camera.Right * cameraSpeed * dt; // Left
+            _camera.Position -= _camera.Right * cameraSpeed * dt; 
         }
         if (input.IsKeyDown(Keys.D))
         {
-            _camera.Position += _camera.Right * cameraSpeed * dt; // Right
+            _camera.Position += _camera.Right * cameraSpeed * dt; 
         }
         if (input.IsKeyDown(Keys.Space))
         {
-            _camera.Position += _camera.Up * cameraSpeed * dt; // Up
+            _camera.Position += _camera.Up * cameraSpeed * dt; 
         }
         if (input.IsKeyDown(Keys.LeftShift))
         {
-            _camera.Position -= _camera.Up * cameraSpeed * dt; // Down
+            _camera.Position -= _camera.Up * cameraSpeed * dt;
         }
 
-        // Get the mouse state
         var mouse = MouseState;
 
         if (mouse.IsButtonDown(MouseButton.Left))
         {
-            if (_firstMove) // This bool variable is initially set to true.
+            if (_firstMove) 
             {
                 _lastPos = new Vector2(mouse.X, mouse.Y);
                 _firstMove = false;
             }
             else if (mouse.IsButtonDown(MouseButton.Left))
             {
-                // Calculate the offset of the mouse position
                 var deltaX = mouse.X - _lastPos.X;
                 var deltaY = mouse.Y - _lastPos.Y;
                 _lastPos = new Vector2(mouse.X, mouse.Y);
 
-                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
                 _camera.Yaw += deltaX * sensitivity;
-                _camera.Pitch -= deltaY * sensitivity; // Reversed since y-coordinates range from bottom to top
+                _camera.Pitch -= deltaY * sensitivity; 
             }
         }
         else

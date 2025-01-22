@@ -11,6 +11,8 @@
   <ItemGroup>
     <None Remove="shaders\default.frag" />
     <None Remove="shaders\default.vert" />
+    <None Remove="shaders\light.frag" />
+    <None Remove="shaders\light.vert" />
     <None Remove="textures\awesomeface.png" />
     <None Remove="textures\floor_ambient_occlusion.png" />
     <None Remove="textures\floor_basecolor.png" />
@@ -27,6 +29,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="shaders\default.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="shaders\light.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="shaders\light.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="textures\awesomeface.png">

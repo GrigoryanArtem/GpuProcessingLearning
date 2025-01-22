@@ -33,13 +33,19 @@ public class ShaderProgram : IDisposable
     public void SetMat4(string name, Matrix4 value)
     {
         var loc = GL.GetUniformLocation(Handle, name);
-        GL.UniformMatrix4(loc, true, ref value);
+        GL.UniformMatrix4(loc, false, ref value);
     }
 
     public void SetVec2(string name, Vector2 value)
     {
         var loc = GL.GetUniformLocation(Handle, name);
         GL.Uniform2(loc, value);
+    }
+
+    public void SetVec4(string name, Vector4 value)
+    {
+        var loc = GL.GetUniformLocation(Handle, name);
+        GL.Uniform4(loc, value);
     }
 
     #region Dispose

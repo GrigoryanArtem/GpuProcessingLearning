@@ -15,7 +15,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Vsync = VSyncMode.On,
 })
 {
-    private Cube[] cubes = [];
+    private Pyramid[] _pyramids = [];
     private LightCube _light;
     private Camera _camera;
     private Plane _plane;
@@ -43,12 +43,12 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _camera = new Camera(new(0f, 5f, 0f), (float)width / height);
 
-        cubes = Enumerable.Range(0, 10).Select(_ => new Cube()
+        _pyramids = Enumerable.Range(0, 10).Select(_ => new Pyramid()
         {
             Position = new Vector3
             (
                 x: (float)Random.Shared.NextDouble() * 10f - 5f,
-                y: .501f,
+                y: .01f,
                 z: (float)Random.Shared.NextDouble() * 10f - 5f
             )
         }).ToArray();
@@ -79,10 +79,11 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
-
+        var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 0f, 1.0f);
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
-        _defaultShader.SetVec4("light_color", new(1.0f, 0.0f, 0.0f, 1.0f));
+        _defaultShader.SetVec4("light_color", lightColor);
+        _defaultShader.SetVec3("light_pos", _light.Position);
 
         HandleInput((float)args.Time);
 
@@ -95,7 +96,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _defaultShader.SetVec2("uv_scale", Vector2.One);
 
-        foreach (var cube in cubes)
+        foreach (var cube in _pyramids)
             Draw(_defaultShader, cube);
 
         texture0.Bind(TextureUnit.Texture0);
@@ -106,7 +107,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _lightShader.Use();
 
-        _lightShader.SetVec4("light_color", new(1.0f, 0.0f, 0.0f, 1.0f));
+        _lightShader.SetVec4("light_color", lightColor);
+        _lightShader.SetVec3("light_pos", _light.Position);
         _lightShader.SetMat4("view", _camera.GetViewMatrix());
         _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
@@ -116,6 +118,9 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         SwapBuffers();
     }
+
+    private float Fun(float shift) 
+        => (float)Math.Abs(Math.Sin(_time * shift));
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
@@ -222,6 +227,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         base.Dispose();
 
         _defaultShader.Dispose();
-        Array.ForEach(cubes, c => c.Dispose());
+        Array.ForEach(_pyramids, c => c.Dispose());
     }
 }

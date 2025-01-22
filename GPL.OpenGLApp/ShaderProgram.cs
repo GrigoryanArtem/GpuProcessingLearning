@@ -42,6 +42,12 @@ public class ShaderProgram : IDisposable
         GL.Uniform2(loc, value);
     }
 
+    public void SetVec3(string name, Vector3 value)
+    {
+        var loc = GL.GetUniformLocation(Handle, name);
+        GL.Uniform3(loc, value);
+    }
+
     public void SetVec4(string name, Vector4 value)
     {
         var loc = GL.GetUniformLocation(Handle, name);

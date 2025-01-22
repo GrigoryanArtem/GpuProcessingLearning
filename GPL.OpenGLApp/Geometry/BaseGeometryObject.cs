@@ -61,9 +61,10 @@ public abstract class BaseGeometryObject : IGeometryObject
 
         VAO.Bind();
 
-        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 0);
-        VAO.Link(VBO, 1, 3, VertexAttribPointerType.Float, 8 * sizeof(float), 3 * sizeof(float));
-        VAO.Link(VBO, 2, 2, VertexAttribPointerType.Float, 8 * sizeof(float), 6 * sizeof(float));
+        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 0);
+        VAO.Link(VBO, 1, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 3 * sizeof(float));
+        VAO.Link(VBO, 2, 2, VertexAttribPointerType.Float, 11 * sizeof(float), 6 * sizeof(float));
+        VAO.Link(VBO, 3, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 8 * sizeof(float));
 
         VAO.Unbind();
         VBO.Unbind();

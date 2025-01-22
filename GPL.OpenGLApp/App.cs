@@ -15,6 +15,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Vsync = VSyncMode.On,
 })
 {
+    private Random _random = new Random(42);
     private Pyramid[] _pyramids = [];
     private LightCube _light;
     private Camera _camera;
@@ -39,7 +40,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         StbImage.stbi_set_flip_vertically_on_load(1);
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
-        texture1 = Texture.Load("textures/wood_planks_diff_1k.png");
+        texture1 = Texture.Load("textures/floor_ambient_occlusion.png");
 
         _camera = new Camera(new(0f, 5f, 0f), (float)width / height);
 
@@ -47,9 +48,9 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         {
             Position = new Vector3
             (
-                x: (float)Random.Shared.NextDouble() * 10f - 5f,
+                x: (float)_random.NextDouble() * 10f - 5f,
                 y: .01f,
-                z: (float)Random.Shared.NextDouble() * 10f - 5f
+                z: (float)_random.NextDouble() * 10f - 5f
             )
         }).ToArray();
 
@@ -60,7 +61,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _light = new LightCube()
         {
-            Position = new Vector3(3f, 2f, 3f)
+            Position = new Vector3(3f, 1f, 3f)
         };
 
         GL.Enable(EnableCap.DepthTest);
@@ -79,28 +80,30 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
-        var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 0f, 1.0f);
+        var lightColor = new Vector4(1f, 1f, 1f, 1f);
+        //var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f, 1.0f);
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
         _defaultShader.SetVec4("light_color", lightColor);
         _defaultShader.SetVec3("light_pos", _light.Position);
+        _defaultShader.SetVec3("cam_pos", _camera.Position);
 
         HandleInput((float)args.Time);
 
-
-        texture1.Bind(TextureUnit.Texture0);
+        texture0.Bind(TextureUnit.Texture0);
         _defaultShader.SetInt("texture0", 0);
+
+        texture1.Bind(TextureUnit.Texture1);
+        _defaultShader.SetInt("texture1", 1);
+
 
         _defaultShader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        _defaultShader.SetVec2("uv_scale", Vector2.One);
+        _defaultShader.SetVec2("uv_scale", Vector2.One / 2);
 
         foreach (var cube in _pyramids)
             Draw(_defaultShader, cube);
-
-        texture0.Bind(TextureUnit.Texture0);
-        _defaultShader.SetInt("texture0", 0);
 
         _defaultShader.SetVec2("uv_scale", Vector2.One * 10f);
         Draw(_defaultShader, _plane);
@@ -108,7 +111,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _lightShader.Use();
 
         _lightShader.SetVec4("light_color", lightColor);
-        _lightShader.SetVec3("light_pos", _light.Position);
         _lightShader.SetMat4("view", _camera.GetViewMatrix());
         _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
 

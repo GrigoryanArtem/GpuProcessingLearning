@@ -14,6 +14,8 @@
     <None Remove="shaders\light.frag" />
     <None Remove="shaders\light.vert" />
     <None Remove="textures\awesomeface.png" />
+    <None Remove="textures\container2.png" />
+    <None Remove="textures\container2_specular.png" />
     <None Remove="textures\floor_ambient_occlusion.png" />
     <None Remove="textures\floor_basecolor.png" />
     <None Remove="textures\floor_height.png" />
@@ -38,6 +40,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="textures\awesomeface.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\container2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="textures\container2_specular.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="textures\floor_ambient_occlusion.png">

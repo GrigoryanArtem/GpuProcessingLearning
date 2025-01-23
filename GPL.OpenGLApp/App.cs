@@ -8,11 +8,12 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using StbImageSharp;
 
 namespace GPL.OpenGLApp;
-public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new () {
-            APIVersion = new Version(4, 6),
-            Flags = ContextFlags.Debug,
-            ClientSize = (width, height),
-            Vsync = VSyncMode.On,
+public class App(int width, int height, string title) : GameWindow(GameWindowSettings.Default, new()
+{
+    APIVersion = new Version(4, 6),
+    Flags = ContextFlags.Debug,
+    ClientSize = (width, height),
+    Vsync = VSyncMode.On,
 })
 {
     private Random _random = new Random(42);
@@ -70,47 +71,49 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
     float angle = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
-    {        
+    {
         base.OnUpdateFrame(args);
 
-        if (KeyboardState.IsKeyPressed(Keys.Escape))        
+        if (KeyboardState.IsKeyPressed(Keys.Escape))
             Close();
 
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
-        var lightColor = new Vector4(1f, 1f, 1f, 1f);
+        var lightColor = new Vector3(1f, 1f, 1f);
         //var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f, 1.0f);
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
-        _defaultShader.SetVec4("light_color", lightColor);
-        _defaultShader.SetVec3("light_pos", _light.Position);
+        _defaultShader.SetVec3("light.position", _light.Position);
+
+        _defaultShader.SetVec3("light.diffuse", lightColor);
+        _defaultShader.SetVec3("light.ambient", new(.2f, .2f, .2f));
+        _defaultShader.SetVec3("light.specular", new(.3f, .3f, .3f));
+
         _defaultShader.SetVec3("cam_pos", _camera.Position);
 
         HandleInput((float)args.Time);
 
+        _defaultShader.SetFloat("material.shininess", 16f);
         texture0.Bind(TextureUnit.Texture0);
-        _defaultShader.SetInt("texture0", 0);
+        _defaultShader.SetInt("material.diffuse", 0);
 
         texture1.Bind(TextureUnit.Texture1);
-        _defaultShader.SetInt("texture1", 1);
+        _defaultShader.SetInt("material.specular", 1);
 
 
         _defaultShader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        _defaultShader.SetVec2("uv_scale", Vector2.One / 2);
-
         foreach (var cube in _pyramids)
             Draw(_defaultShader, cube);
 
-        _defaultShader.SetVec2("uv_scale", Vector2.One * 10f);
         Draw(_defaultShader, _plane);
 
         _lightShader.Use();
 
-        _lightShader.SetVec4("light_color", lightColor);
+        _lightShader.SetVec3("light_color", lightColor);
         _lightShader.SetMat4("view", _camera.GetViewMatrix());
         _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
@@ -121,7 +124,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         SwapBuffers();
     }
 
-    private float Fun(float shift) 
+    private float Fun(float shift)
         => (float)Math.Abs(Math.Sin(_time * shift));
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
@@ -173,24 +176,24 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         if (input.IsKeyDown(Keys.W))
         {
-            _camera.Position += _camera.Front * cameraSpeed * dt; 
+            _camera.Position += _camera.Front * cameraSpeed * dt;
         }
 
         if (input.IsKeyDown(Keys.S))
         {
-            _camera.Position -= _camera.Front * cameraSpeed * dt; 
+            _camera.Position -= _camera.Front * cameraSpeed * dt;
         }
         if (input.IsKeyDown(Keys.A))
         {
-            _camera.Position -= _camera.Right * cameraSpeed * dt; 
+            _camera.Position -= _camera.Right * cameraSpeed * dt;
         }
         if (input.IsKeyDown(Keys.D))
         {
-            _camera.Position += _camera.Right * cameraSpeed * dt; 
+            _camera.Position += _camera.Right * cameraSpeed * dt;
         }
         if (input.IsKeyDown(Keys.Space))
         {
-            _camera.Position += _camera.Up * cameraSpeed * dt; 
+            _camera.Position += _camera.Up * cameraSpeed * dt;
         }
         if (input.IsKeyDown(Keys.LeftShift))
         {
@@ -201,7 +204,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         if (mouse.IsButtonDown(MouseButton.Left))
         {
-            if (_firstMove) 
+            if (_firstMove)
             {
                 _lastPos = new Vector2(mouse.X, mouse.Y);
                 _firstMove = false;
@@ -213,7 +216,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
                 _lastPos = new Vector2(mouse.X, mouse.Y);
 
                 _camera.Yaw += deltaX * sensitivity;
-                _camera.Pitch -= deltaY * sensitivity; 
+                _camera.Pitch -= deltaY * sensitivity;
             }
         }
         else

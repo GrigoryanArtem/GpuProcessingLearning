@@ -85,7 +85,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         //var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f, 1.0f);
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
-        _defaultShader.SetVec3("light.position", _light.Position);
+        _defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
+        //_defaultShader.SetVec3("light.position", _light.Position);
 
         _defaultShader.SetVec3("light.diffuse", lightColor);
         _defaultShader.SetVec3("light.ambient", new(.2f, .2f, .2f));

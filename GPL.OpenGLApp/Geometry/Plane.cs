@@ -14,8 +14,8 @@ public class Plane : BaseGeometryObject
 
     private static readonly uint[] INDICES =
     [
-        0, 1, 2,
-        3, 4, 5
+        0, 2, 1,
+        3, 5, 4
     ];
 
     public Plane() : base(VERTICES, INDICES) { }

@@ -77,6 +77,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     }
 
     float angle = 0;
+    float t = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         base.OnUpdateFrame(args);
@@ -85,11 +86,16 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Close();
 
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        //GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Line);
+        GL.Enable(EnableCap.CullFace);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
-        var lightColor = new Vector3(1f, 1f, 1f);
-        //var lightColor = new Vector4(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f, 1.0f);
+        // var lightColor = new Vector3(1f, 1f, 1f);
+        var lightColor = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
+
+        _light.Position = GetSpiralPosition(Vector3.Zero, 3f, 5f, 4, t - (float)Math.Floor(t));
+
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
         //_defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
@@ -133,6 +139,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Draw(_lightShader, _light);
 
         angle += .1f;
+        t += 0.002f;
 
         SwapBuffers();
     }
@@ -239,6 +246,15 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     }
 
     #endregion
+
+    public static Vector3 GetSpiralPosition(Vector3 center, float radius, float height, float turns, float time)
+    {
+        float angle = time * turns * MathF.PI * 2; // Полный оборот за единицу времени
+        float x = center.X + radius * MathF.Cos(angle);
+        float y = center.Y + (height * time);
+        float z = center.Z + radius * MathF.Sin(angle);
+        return new Vector3(x, y, z);
+    }
 
     public override void Dispose()
     {

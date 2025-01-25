@@ -52,12 +52,12 @@ internal class Sphere : BaseGeometryObject
                 uint second = (uint)(first + slices + 1);
 
                 indices.Add(first);
-                indices.Add(second);
                 indices.Add(first + 1);
+                indices.Add(second);
 
                 indices.Add(second);
-                indices.Add(second + 1);
                 indices.Add(first + 1);
+                indices.Add(second + 1);
             }
         }
 

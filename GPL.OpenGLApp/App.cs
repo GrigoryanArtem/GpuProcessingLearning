@@ -19,6 +19,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private Random _random = new Random(42);
     private Pyramid[] _pyramids = [];
     private LightCube _light;
+    private Sphere _sphere;
+
     private Camera _camera;
     private Plane _plane;
 
@@ -54,6 +56,11 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
                 z: (float)_random.NextDouble() * 10f - 5f
             )
         }).ToArray();
+
+        _sphere = new Sphere(12)
+        {
+            Position = new(-3f, .5f, 2f)
+        };
 
         _plane = new Plane()
         {
@@ -115,6 +122,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Draw(_defaultShader, cube);
 
         Draw(_defaultShader, _plane);
+        Draw(_defaultShader, _sphere);
 
         _lightShader.Use();
 
@@ -238,5 +246,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _defaultShader.Dispose();
         Array.ForEach(_pyramids, c => c.Dispose());
+        _sphere.Dispose();
     }
 }

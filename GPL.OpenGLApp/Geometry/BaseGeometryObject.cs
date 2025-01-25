@@ -13,16 +13,19 @@ public abstract class BaseGeometryObject : IGeometryObject
     protected float[] Mesh { get; set; }
     protected uint[] Indices { get; set; }
 
-    public BaseGeometryObject(float[] vertices, uint[] indices)
+    public BaseGeometryObject()
+    {
+        Scale = Vector3.One;
+        Position = Vector3.Zero;
+        Rotation = Quaternion.Identity;
+    }
+
+    public BaseGeometryObject(float[] vertices, uint[] indices) : this()
     {
         Mesh = vertices;
         Indices = indices;
 
         BuildObject();
-
-        Scale = Vector3.One;
-        Position = Vector3.Zero;
-        Rotation = Quaternion.Identity;
     }
 
     public Vector3 Position { get; set; }
@@ -61,10 +64,11 @@ public abstract class BaseGeometryObject : IGeometryObject
 
         VAO.Bind();
 
-        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 0);
-        VAO.Link(VBO, 1, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 3 * sizeof(float));
-        VAO.Link(VBO, 2, 2, VertexAttribPointerType.Float, 11 * sizeof(float), 6 * sizeof(float));
-        VAO.Link(VBO, 3, 3, VertexAttribPointerType.Float, 11 * sizeof(float), 8 * sizeof(float));
+        var stride = 11 * sizeof(float);
+        VAO.Link(VBO, 0, 3, VertexAttribPointerType.Float, stride, 0);
+        VAO.Link(VBO, 1, 3, VertexAttribPointerType.Float, stride, 3 * sizeof(float));
+        VAO.Link(VBO, 2, 2, VertexAttribPointerType.Float, stride, 6 * sizeof(float));
+        VAO.Link(VBO, 3, 3, VertexAttribPointerType.Float, stride, 8 * sizeof(float));
 
         VAO.Unbind();
         VBO.Unbind();

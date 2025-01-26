@@ -1,5 +1,6 @@
 ﻿using GPL.OpenGLApp.Core;
 using GPL.OpenGLApp.Geometry;
+using GPL.OpenGLApp.Light;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -24,9 +25,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private Camera _camera;
     private Plane _plane;
 
-    private ShaderProgram _defaultShader;
+    private DefaultShader _defaultShader;
     private ShaderProgram _lightShader;
 
+    private SpotLight _spotLight;
 
     private double _time;
 
@@ -72,6 +74,22 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Position = new Vector3(3f, 1f, 3f)
         };
 
+        _spotLight = new SpotLight
+        {
+            Position = new (3f, 1f, 3f),
+            Direction = new (0, -1f, 0),
+
+            CutOff = MathF.Cos(12.5f * 3.14f / 180f),
+            OuterCutOff = MathF.Cos(20.5f * 3.14f / 180f),
+
+            Constant = 1f,
+            Linear = 0.09f,
+            Quadratic = 0.032f,
+
+            Ambient = new(.2f, .2f, .2f),
+            Specular = new(.3f, .3f, .3f)
+        };
+
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
@@ -91,52 +109,42 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Title = $"{title} FPS: {1 / args.Time:f0}";
         _time += args.Time;
         // var lightColor = new Vector3(1f, 1f, 1f);
-        var lightColor = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
+        // var lightColor = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
+        _spotLight.Diffuse = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
 
-        _light.Position = GetSpiralPosition(Vector3.Zero, 3f, 5f, 4, t - (float)Math.Floor(t));
+        _spotLight.Position = _light.Position = GetSpiralPosition(Vector3.Zero, 3f, 5f, 4, t - (float)Math.Floor(t));
 
-        _defaultShader.Use();
-        _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
+        _defaultShader.Shader.Use();
         //_defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
         //_defaultShader.SetVec3("light.position", _light.Position);
 
-        _defaultShader.SetVec3("light.position", _light.Position);
-        _defaultShader.SetVec3("light.direction", new(0,-1f,0));
-        _defaultShader.SetFloat("light.cutOff", MathF.Cos(12.5f * 3.14f / 180f));
-        _defaultShader.SetFloat("light.outerCutOff", MathF.Cos(20.5f * 3.14f / 180f));
+        _defaultShader.Shader.SetInt("point_lights_count", 0);
+        _defaultShader.Setup(_spotLight);
 
-        _defaultShader.SetFloat("light.constant", 1.0f);
-        _defaultShader.SetFloat("light.linear", 0.09f);
-        _defaultShader.SetFloat("light.quadratic", 0.032f);
-
-        _defaultShader.SetVec3("light.diffuse", lightColor);
-        _defaultShader.SetVec3("light.ambient", new(.2f, .2f, .2f));
-        _defaultShader.SetVec3("light.specular", new(.3f, .3f, .3f));
-
-        _defaultShader.SetVec3("cam_pos", _camera.Position);
+        _defaultShader.Setup(_camera);
 
         HandleInput((float)args.Time);
 
-        _defaultShader.SetFloat("material.shininess", 16f);
+        _defaultShader.Shader.SetFloat("material.shininess", 16f);
         texture0.Bind(TextureUnit.Texture0);
-        _defaultShader.SetInt("material.diffuse", 0);
+        _defaultShader.Shader.SetInt("material.diffuse", 0);
 
         texture1.Bind(TextureUnit.Texture1);
-        _defaultShader.SetInt("material.specular", 1);
+        _defaultShader.Shader.SetInt("material.specular", 1);
 
 
-        _defaultShader.SetMat4("view", _camera.GetViewMatrix());
-        _defaultShader.SetMat4("projection", _camera.GetProjectionMatrix());
+        _defaultShader.Shader.SetMat4("view", _camera.GetViewMatrix());
+        _defaultShader.Shader.SetMat4("projection", _camera.GetProjectionMatrix());
 
         foreach (var cube in _pyramids)
-            Draw(_defaultShader, cube);
+            Draw(_defaultShader.Shader, cube);
 
-        Draw(_defaultShader, _plane);
-        Draw(_defaultShader, _sphere);
+        Draw(_defaultShader.Shader, _plane);
+        Draw(_defaultShader.Shader, _sphere);
 
         _lightShader.Use();
 
-        _lightShader.SetVec3("light_color", lightColor);
+        _lightShader.SetVec3("light_color", _spotLight.Diffuse);
         _lightShader.SetMat4("view", _camera.GetViewMatrix());
         _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
@@ -169,7 +177,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private void LoadShaders()
     {
         Console.Error.WriteLine("Shaders loading...");
-        _defaultShader = new ShaderProgram("shaders/default.vert", "shaders/default.frag");
+        _defaultShader = new();
         _lightShader = new ShaderProgram("shaders/light.vert", "shaders/light.frag");
         Console.Error.WriteLine("Shaders loaded");
     }

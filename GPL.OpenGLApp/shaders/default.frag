@@ -1,6 +1,6 @@
 #version 460 core
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 
 struct Material 
 {

@@ -41,4 +41,25 @@ public class DefaultShader : IDisposable
         Shader.SetVec3("spot_light.specular", light.Specular);
     }
 
+    public void Setup(int index, PointLight light)
+    {
+        Shader.SetVec3($"point_lights[{index}].position", light.Position);
+
+        Shader.SetFloat($"point_lights[{index}].constant", light.Constant);
+        Shader.SetFloat($"point_lights[{index}].linear", light.Linear);
+        Shader.SetFloat($"point_lights[{index}].quadratic", light.Quadratic);
+
+        Shader.SetVec3($"point_lights[{index}].diffuse", light.Diffuse);
+        Shader.SetVec3($"point_lights[{index}].ambient", light.Ambient);
+        Shader.SetVec3($"point_lights[{index}].specular", light.Specular);
+    }
+
+    public void Setup(DirectionLight light)
+    {        
+        Shader.SetVec3("dir_light.direction", light.Direction);
+
+        Shader.SetVec3("dir_light.diffuse", light.Diffuse);
+        Shader.SetVec3("dir_light.ambient", light.Ambient);
+        Shader.SetVec3("dir_light.specular", light.Specular);
+    }
 }

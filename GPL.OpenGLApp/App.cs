@@ -19,7 +19,9 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 {
     private Random _random = new Random(42);
     private Pyramid[] _pyramids = [];
-    private LightCube _light;
+
+    private LightCube[] _lights;
+
     private Sphere _sphere;
 
     private Camera _camera;
@@ -29,6 +31,9 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private ShaderProgram _lightShader;
 
     private SpotLight _spotLight;
+    private DirectionLight _directionLight;
+
+    private PointLight[] _pointLights;
 
     private double _time;
 
@@ -69,15 +74,12 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Scale = new(10, 0, 10)
         };
 
-        _light = new LightCube()
-        {
-            Position = new Vector3(3f, 1f, 3f)
-        };
+        _lights = Enumerable.Range(0, 4).Select(_ => new LightCube()).ToArray();
 
         _spotLight = new SpotLight
         {
-            Position = new (3f, 1f, 3f),
-            Direction = new (0, -1f, 0),
+            Position = new(3f, 1f, 3f),
+            Direction = new(0, -1f, 0),
 
             CutOff = MathF.Cos(12.5f * 3.14f / 180f),
             OuterCutOff = MathF.Cos(20.5f * 3.14f / 180f),
@@ -88,6 +90,26 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
             Ambient = new(.2f, .2f, .2f),
             Specular = new(.3f, .3f, .3f)
+        };
+
+        _pointLights = Enumerable.Range(0, 4).Select(_ => new PointLight
+        {
+            Position = new(3f, 1f, 3f),
+
+            Constant = 1f,
+            Linear = 0.35f,
+            Quadratic = .44f,
+
+            Ambient = new(.2f, .2f, .2f),
+            Specular = new(.3f, .3f, .3f)
+        }).ToArray();
+
+        _directionLight = new DirectionLight()
+        {
+            Ambient = new(.2f, .2f, .2f),
+            Specular = new(.3f, .3f, .3f),
+            Diffuse = new(.1f, .1f, .1f),
+            Direction = new(.5f, -5f, 5f)
         };
 
         GL.Enable(EnableCap.DepthTest);
@@ -110,18 +132,31 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _time += args.Time;
         // var lightColor = new Vector3(1f, 1f, 1f);
         // var lightColor = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
-        _spotLight.Diffuse = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
 
-        _spotLight.Position = _light.Position = GetSpiralPosition(Vector3.Zero, 3f, 5f, 4, t - (float)Math.Floor(t));
+        _spotLight.Position = new(0, 7f, 0);
+
+        for (int i = 0; i < 4; i++)
+        {
+            var ct = t + .25f * i;
+            var nt = ct - (float)Math.Floor(ct);
+            _pointLights[i].Diffuse = GetRainbowColor(nt);
+            _pointLights[i].Position = _lights[i].Position = GetSpiralPosition(new(0f, 1f, 0f), 3f, 0f, 1, nt);
+        }
 
         _defaultShader.Shader.Use();
         //_defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
         //_defaultShader.SetVec3("light.position", _light.Position);
 
-        _defaultShader.Shader.SetInt("point_lights_count", 0);
-        _defaultShader.Setup(_spotLight);
+        _defaultShader.Shader.SetInt("point_lights_count", 4);
 
-        _defaultShader.Setup(_camera);
+        _defaultShader.Setup(_spotLight);
+        //_defaultShader.Setup(_directionLight);        
+
+        foreach (var (light, idx) in _pointLights.Select((lt, i) => (lt, i)))
+        {
+            _defaultShader.Setup(idx, light);
+        }
+
 
         HandleInput((float)args.Time);
 
@@ -132,6 +167,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture1.Bind(TextureUnit.Texture1);
         _defaultShader.Shader.SetInt("material.specular", 1);
 
+        _defaultShader.Setup(_camera);
 
         _defaultShader.Shader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.Shader.SetMat4("projection", _camera.GetProjectionMatrix());
@@ -144,20 +180,20 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _lightShader.Use();
 
-        _lightShader.SetVec3("light_color", _spotLight.Diffuse);
         _lightShader.SetMat4("view", _camera.GetViewMatrix());
         _lightShader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        Draw(_lightShader, _light);
+        foreach (var (light, idx) in _lights.Select((lt, i) => (lt, i)))
+        {
+            _lightShader.SetVec3("light_color", _pointLights[idx].Diffuse);
+            Draw(_lightShader, light);
+        }
 
         angle += .1f;
         t += 0.002f;
 
         SwapBuffers();
     }
-
-    private float Fun(float shift)
-        => (float)Math.Abs(Math.Sin(_time * shift));
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
@@ -261,11 +297,32 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
     public static Vector3 GetSpiralPosition(Vector3 center, float radius, float height, float turns, float time)
     {
-        float angle = time * turns * MathF.PI * 2; // Полный оборот за единицу времени
+        float angle = time * turns * MathF.PI * 2;
         float x = center.X + radius * MathF.Cos(angle);
         float y = center.Y + (height * time);
         float z = center.Z + radius * MathF.Sin(angle);
         return new Vector3(x, y, z);
+    }
+
+    public static Vector3 GetRainbowColor(float t)
+    {
+        t = Math.Clamp(t, 0f, 1f);
+
+        float r = 0, g = 0, b = 0;
+        float section = t * 5f;
+        int i = (int)section;
+        float f = section - i;
+
+        switch (i)
+        {
+            case 0: r = 1; g = f; b = 0; break;
+            case 1: r = 1 - f; g = 1; b = 0; break;
+            case 2: r = 0; g = 1; b = f; break;
+            case 3: r = 0; g = 1 - f; b = 1; break;
+            case 4: r = f; g = 0; b = 1; break;
+        }
+
+        return new(r, g, b);
     }
 
     public override void Dispose()

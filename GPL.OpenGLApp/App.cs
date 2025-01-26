@@ -86,7 +86,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Close();
 
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        //GL.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Line);
         GL.Enable(EnableCap.CullFace);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
@@ -99,7 +98,12 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         _defaultShader.Use();
         _defaultShader.SetFloat(ShadersConstants.TIME, (float)_time);
         //_defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
+        //_defaultShader.SetVec3("light.position", _light.Position);
+
         _defaultShader.SetVec3("light.position", _light.Position);
+        _defaultShader.SetVec3("light.direction", new(0,-1f,0));
+        _defaultShader.SetFloat("light.cutOff", MathF.Cos(12.5f * 3.14f / 180f));
+        _defaultShader.SetFloat("light.outerCutOff", MathF.Cos(20.5f * 3.14f / 180f));
 
         _defaultShader.SetFloat("light.constant", 1.0f);
         _defaultShader.SetFloat("light.linear", 0.09f);

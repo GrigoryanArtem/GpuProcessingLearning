@@ -20,7 +20,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private Random _random = new Random(42);
     private Pyramid[] _pyramids = [];
 
-    private LightCube[] _lights;
+    private LightBulb[] _lights;
 
     private Sphere _sphere;
 
@@ -74,7 +74,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Scale = new(10, 0, 10)
         };
 
-        _lights = Enumerable.Range(0, 4).Select(_ => new LightCube()).ToArray();
+        _lights = Enumerable.Range(0, 4).Select(_ => new LightBulb()).ToArray();
 
         _spotLight = new SpotLight
         {

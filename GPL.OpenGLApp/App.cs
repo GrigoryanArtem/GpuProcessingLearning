@@ -260,8 +260,36 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         base.OnFramebufferResize(e);
 
         _camera.AspectRatio = (float)e.Width / e.Height;
+        _screenShader.SetVec2("iResolution", new(e.Width, e.Height));
+        ResizeFrameBuffer(e.Width, e.Height);
+
 
         GL.Viewport(0, 0, e.Width, e.Height);
+    }
+
+    private void ResizeFrameBuffer(int width, int height)
+    {
+        Console.Error.WriteLine("Frame buffer resizing");
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+
+        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
+
+        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
+        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
+        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);
+
+        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
+        {
+            Console.Error.WriteLine("Frame buffer resizing complete");
+        }
+        else
+        {
+            Console.Error.WriteLine("Frame buffer resizing not complete");
+        }
     }
 
     private static void Draw(ShaderProgram shader, IGeometryObject geometry)

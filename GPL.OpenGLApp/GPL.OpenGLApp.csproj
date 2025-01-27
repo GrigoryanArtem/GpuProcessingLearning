@@ -11,6 +11,8 @@
   <ItemGroup>
     <None Remove="shaders\default.frag" />
     <None Remove="shaders\default.vert" />
+    <None Remove="shaders\fb.frag" />
+    <None Remove="shaders\fb.vert" />
     <None Remove="shaders\light.frag" />
     <None Remove="shaders\light.vert" />
     <None Remove="textures\awesomeface.png" />
@@ -31,6 +33,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="shaders\default.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="shaders\fb.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="shaders\fb.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="shaders\light.frag">

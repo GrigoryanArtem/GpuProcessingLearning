@@ -29,16 +29,18 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
     private DefaultShader _defaultShader;
     private ShaderProgram _lightShader;
+    private ShaderProgram _screenShader;
 
     private SpotLight _spotLight;
-    private DirectionLight _directionLight;
 
     private PointLight[] _pointLights;
 
-    private double _time;
-
     private Texture texture0;
     private Texture texture1;
+
+    private int _fbo;
+    private int _textureColorBuffer;
+    private int _rbo;
 
     protected override void OnLoad()
     {
@@ -104,19 +106,67 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Specular = new(.3f, .3f, .3f)
         }).ToArray();
 
-        _directionLight = new DirectionLight()
-        {
-            Ambient = new(.2f, .2f, .2f),
-            Specular = new(.3f, .3f, .3f),
-            Diffuse = new(.1f, .1f, .1f),
-            Direction = new(.5f, -5f, 5f)
-        };
+
+        InitFrameBuffer();
 
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
 
-    float angle = 0;
+    private int _quadVAO, _quadVBO;
+    private float[] quadVertices = [ 
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    ];
+    private void InitFrameBuffer()
+    {
+        _screenShader.Use();
+        _screenShader.SetInt("screenTexture", 0);
+
+        _quadVAO = GL.GenVertexArray();
+        _quadVBO = GL.GenBuffer();
+
+        GL.BindVertexArray(_quadVAO);
+        GL.BindBuffer(BufferTarget.ArrayBuffer, _quadVBO);
+        GL.BufferData(BufferTarget.ArrayBuffer, quadVertices.Length * sizeof(float), quadVertices, BufferUsageHint.StaticDraw);
+        GL.EnableVertexAttribArray(0);
+        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+        GL.EnableVertexAttribArray(1);
+        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+
+        _fbo = GL.GenFramebuffer();
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+
+        _textureColorBuffer = GL.GenTexture();
+        
+        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
+
+        _rbo = GL.GenRenderbuffer();
+        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
+        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
+        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);                                                                                                       
+
+        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
+        {
+            Console.Error.WriteLine("Frame buffer complete");
+        }
+        else
+        {
+            Console.Error.WriteLine("Frame buffer not complete");
+        }
+
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
+
     float t = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
@@ -125,13 +175,14 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         if (KeyboardState.IsKeyPressed(Keys.Escape))
             Close();
 
+
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        GL.Enable(EnableCap.DepthTest);
         GL.Enable(EnableCap.CullFace);
 
         Title = $"{title} FPS: {1 / args.Time:f0}";
-        _time += args.Time;
-        // var lightColor = new Vector3(1f, 1f, 1f);
-        // var lightColor = new Vector3(Fun(3.14f / 3), 1f - Fun(3.14f / 2), 1f);
 
         _spotLight.Position = new(0, 7f, 0);
 
@@ -144,13 +195,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         }
 
         _defaultShader.Shader.Use();
-        //_defaultShader.SetVec3("light.direction",new(-0.2f, -1.0f, -0.3f));
-        //_defaultShader.SetVec3("light.position", _light.Position);
 
         _defaultShader.Shader.SetInt("point_lights_count", 4);
 
         _defaultShader.Setup(_spotLight);
-        //_defaultShader.Setup(_directionLight);        
 
         foreach (var (light, idx) in _pointLights.Select((lt, i) => (lt, i)))
         {
@@ -161,11 +209,11 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         HandleInput((float)args.Time);
 
         _defaultShader.Shader.SetFloat("material.shininess", 16f);
-        texture0.Bind(TextureUnit.Texture0);
-        _defaultShader.Shader.SetInt("material.diffuse", 0);
+        texture0.Bind(TextureUnit.Texture1);
+        _defaultShader.Shader.SetInt("material.diffuse", 1);
 
-        texture1.Bind(TextureUnit.Texture1);
-        _defaultShader.Shader.SetInt("material.specular", 1);
+        texture1.Bind(TextureUnit.Texture2);
+        _defaultShader.Shader.SetInt("material.specular", 2);
 
         _defaultShader.Setup(_camera);
 
@@ -189,9 +237,21 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Draw(_lightShader, light);
         }
 
-        angle += .1f;
-        t += 0.002f;
+        texture0.Unbind();
+        texture1.Unbind();
 
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+
+        GL.Disable(EnableCap.DepthTest); // disable depth test so screen-space quad isn't discarded due to depth test. // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+        GL.Clear(ClearBufferMask.ColorBufferBit);
+
+        _screenShader.Use();
+        GL.BindVertexArray(_quadVAO);
+        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
+
+
+        t += 0.002f;
         SwapBuffers();
     }
 
@@ -215,6 +275,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Console.Error.WriteLine("Shaders loading...");
         _defaultShader = new();
         _lightShader = new ShaderProgram("shaders/light.vert", "shaders/light.frag");
+        _screenShader = new ShaderProgram("shaders/fb.vert", "shaders/fb.frag");
         Console.Error.WriteLine("Shaders loaded");
     }
 

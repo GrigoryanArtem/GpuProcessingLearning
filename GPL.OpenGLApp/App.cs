@@ -48,7 +48,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         Console.WriteLine($"OpenGL: {APIVersion}");
 
         LoadShaders();
-
         StbImage.stbi_set_flip_vertically_on_load(1);
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
@@ -164,6 +163,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Console.Error.WriteLine("Frame buffer not complete");
         }
 
+        _screenShader.SetVec2("iResolution", new(width, height));
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 

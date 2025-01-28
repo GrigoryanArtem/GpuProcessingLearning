@@ -37,6 +37,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
     private Texture texture0;
     private Texture texture1;
+    private Texture texture2;
 
     private int _fbo;
     private int _textureColorBuffer;
@@ -52,6 +53,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         texture0 = Texture.Load("textures/floor_basecolor.png");
         texture1 = Texture.Load("textures/floor_ambient_occlusion.png");
+        texture2 = new Texture();
 
         _camera = new Camera(new(0f, 5f, 0f), (float)width / height);
 
@@ -59,15 +61,15 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         {
             Position = new Vector3
             (
-                x: (float)_random.NextDouble() * 10f - 5f,
+                x: (float)_random.NextDouble() * 15f - 7.5f,
                 y: .01f,
-                z: (float)_random.NextDouble() * 10f - 5f
+                z: (float)_random.NextDouble() * 15f - 7.5f
             )
         }).ToArray();
 
         _sphere = new Sphere(12)
         {
-            Position = new(-3f, .5f, 2f)
+            Position = new(-2f, .5f, 1.5f)
         };
 
         _plane = new Plane()
@@ -190,7 +192,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         {
             var ct = t + .25f * i;
             var nt = ct - (float)Math.Floor(ct);
-            _pointLights[i].Diffuse = GetRainbowColor(nt);
+            _pointLights[i].Diffuse = GetRainbowColor(MathF.Sin(nt * MathF.PI));
             _pointLights[i].Position = _lights[i].Position = GetSpiralPosition(new(0f, 1f, 0f), 3f, 0f, 1, nt);
         }
 
@@ -224,6 +226,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Draw(_defaultShader.Shader, cube);
 
         Draw(_defaultShader.Shader, _plane);
+
+        texture2.Bind(TextureUnit.Texture3);
+        _defaultShader.Shader.SetInt("material.diffuse", 3);        
+        _defaultShader.Shader.SetInt("material.specular", 3);
         Draw(_defaultShader.Shader, _sphere);
 
         _lightShader.Use();

@@ -8,7 +8,7 @@ uniform vec2 iResolution;
 
 #define CURVATURE 4.2
 #define BLUR 0.021
-#define CA_AMT 1.024
+#define CA_AMT 1.01
 
 vec2 BrownConradyDistortion(in vec2 uv)
 {
@@ -41,10 +41,10 @@ void main()
     
     // Chromatic aberration
     vec3 color = texture(iChannel0, crtUV).rgb;
-//    float str = 0.5;
-//    color.r = texture(iChannel0, (crtUV - str) * CA_AMT + str).r;
-//    color.g = texture(iChannel0, crtUV).g;
-//    color.b = texture(iChannel0, (crtUV - str) / CA_AMT + str).b;
+    float str = 0.5;
+    color.r = texture(iChannel0, (crtUV - str) * CA_AMT + str).r;
+    color.g = texture(iChannel0, crtUV).g;
+    color.b = texture(iChannel0, (crtUV - str) / CA_AMT + str).b;
     color *= edge.x * edge.y;
     
     // Scanline and grid effect

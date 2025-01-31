@@ -18,11 +18,14 @@ public class Fbo : IDisposable
     private int _textureColorBuffer;
     private int _rbo;
 
-    private Vao _quadVao;
-    private Vbo _quadVbo;
+    private int _quadVao;
+    private int _quadVbo;
 
     public Fbo(int width, int height)
     {
+        Width = width;
+        Height = height;
+
         CreateQuad();
         CreateBuffers(width, height);
     }
@@ -40,10 +43,11 @@ public class Fbo : IDisposable
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 
-    public void BindQuad()
+    public void DrawQuad()
     {
-        _quadVao.Bind();
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
+        GL.BindVertexArray(_quadVao);
+        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
+        GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
     }
 
     public void Resize(int width, int height)
@@ -76,9 +80,6 @@ public class Fbo : IDisposable
 
     private void CreateBuffers(int width, int height)
     {
-        Width = width;
-        Height = height;
-
         _fbo = GL.GenFramebuffer();
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
 
@@ -109,17 +110,20 @@ public class Fbo : IDisposable
 
     private void CreateQuad()
     {
-        _quadVbo = new(QUAD_VERTICES);
-        _quadVao = new();
+        _quadVao = GL.GenVertexArray();
+        _quadVbo = GL.GenBuffer();
 
-        var stride = 4 * sizeof(float);
-        _quadVao.Link(_quadVbo, 0, 2, VertexAttribPointerType.Float, stride, 0);
-        _quadVao.Link(_quadVbo, 1, 2, VertexAttribPointerType.Float, stride, 2 * sizeof(float));
+        GL.BindVertexArray(_quadVao);
+        GL.BindBuffer(BufferTarget.ArrayBuffer, _quadVbo);
+        GL.BufferData(BufferTarget.ArrayBuffer, QUAD_VERTICES.Length * sizeof(float), QUAD_VERTICES, BufferUsageHint.StaticDraw);
+        GL.EnableVertexAttribArray(0);
+        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+        GL.EnableVertexAttribArray(1);
+        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
     }
 
     public void Dispose()
     {
-        _quadVbo.Dispose();
-        _quadVao.Dispose();
+        
     }
 }

@@ -39,9 +39,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private Texture texture1;
     private Texture texture2;
 
-    private int _fbo;
-    private int _textureColorBuffer;
-    private int _rbo;
+    private Fbo _fbo;
 
     protected override void OnLoad()
     {
@@ -107,8 +105,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
             Specular = new(.3f, .3f, .3f)
         }).ToArray();
 
-
-        InitFrameBuffer();
+        _fbo = new Fbo(width, height);
 
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
@@ -124,50 +121,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
          1.0f, -1.0f,  1.0f, 0.0f,
          1.0f,  1.0f,  1.0f, 1.0f
     ];
-    private void InitFrameBuffer()
-    {
-        _screenShader.Use();
-        _screenShader.SetInt("screenTexture", 0);
-
-        _quadVAO = GL.GenVertexArray();
-        _quadVBO = GL.GenBuffer();
-
-        GL.BindVertexArray(_quadVAO);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _quadVBO);
-        GL.BufferData(BufferTarget.ArrayBuffer, quadVertices.Length * sizeof(float), quadVertices, BufferUsageHint.StaticDraw);
-        GL.EnableVertexAttribArray(0);
-        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-        GL.EnableVertexAttribArray(1);
-        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
-
-        _fbo = GL.GenFramebuffer();
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
-
-        _textureColorBuffer = GL.GenTexture();
-        
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
-
-        _rbo = GL.GenRenderbuffer();
-        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
-        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
-        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);                                                                                                       
-
-        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
-        {
-            Console.Error.WriteLine("Frame buffer complete");
-        }
-        else
-        {
-            Console.Error.WriteLine("Frame buffer not complete");
-        }
-
-        _screenShader.SetVec2("iResolution", new(width, height));
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-    }
 
     float t = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -177,8 +130,7 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         if (KeyboardState.IsKeyPressed(Keys.Escape))
             Close();
 
-
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+        _fbo.Bind();
 
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.Enable(EnableCap.DepthTest);
@@ -246,15 +198,13 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture0.Unbind();
         texture1.Unbind();
 
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        _fbo.Unbind();
 
         GL.Disable(EnableCap.DepthTest); // disable depth test so screen-space quad isn't discarded due to depth test. // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
         GL.Clear(ClearBufferMask.ColorBufferBit);
 
         _screenShader.Use();
-        GL.BindVertexArray(_quadVAO);
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
-        GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
+        _fbo.DrawQuad();
 
 
         t += 0.002f;
@@ -267,35 +217,10 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _camera.AspectRatio = (float)e.Width / e.Height;
         _screenShader.SetVec2("iResolution", new(e.Width, e.Height));
-        ResizeFrameBuffer(e.Width, e.Height);
+        _fbo.Resize(e.Width, e.Height);
 
 
         GL.Viewport(0, 0, e.Width, e.Height);
-    }
-
-    private void ResizeFrameBuffer(int width, int height)
-    {
-        Console.Error.WriteLine("Frame buffer resizing");
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
-
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
-
-        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
-        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
-        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);
-
-        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
-        {
-            Console.Error.WriteLine("Frame buffer resizing complete");
-        }
-        else
-        {
-            Console.Error.WriteLine("Frame buffer resizing not complete");
-        }
     }
 
     private static void Draw(ShaderProgram shader, IGeometryObject geometry)

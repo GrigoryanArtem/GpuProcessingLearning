@@ -2,7 +2,7 @@
 using StbImageSharp;
 
 namespace GPL.OpenGLApp.Core;
-internal class Texture
+internal class Texture : IDisposable
 {
     private TextureUnit _unit;
 
@@ -65,4 +65,9 @@ internal class Texture
 
     public static Texture Load(string path)
         => new (path);
+
+    public void Dispose()
+    {
+        GL.DeleteTexture(Handle);
+    }
 }

@@ -3,7 +3,7 @@
 namespace GPL.OpenGLApp.Core;
 public class Fbo : IDisposable
 {
-    private static readonly float[] QUAD_VERTICES = 
+    private static readonly float[] QUAD_VERTICES =
     [
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
@@ -14,18 +14,15 @@ public class Fbo : IDisposable
          1.0f,  1.0f,  1.0f, 1.0f
     ];
 
-    private int _fbo;
-    private int _textureColorBuffer;
-    private int _rbo;
+    public int Handle { get; private set; }
+    public int TextureHandle { get; private set; }
+    public int RenderBufferHandle { get; private set; }
 
-    private int _quadVao;
-    private int _quadVbo;
+    public Vao QuadVao { get; private set; }
+    public Vbo QuadVbo { get; private set; }
 
     public Fbo(int width, int height)
     {
-        Width = width;
-        Height = height;
-
         CreateQuad();
         CreateBuffers(width, height);
     }
@@ -35,7 +32,7 @@ public class Fbo : IDisposable
 
     public void Bind()
     {
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
     }
 
     public void Unbind()
@@ -45,28 +42,28 @@ public class Fbo : IDisposable
 
     public void DrawQuad()
     {
-        GL.BindVertexArray(_quadVao);
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
+        QuadVao.Bind();
+        GL.BindTexture(TextureTarget.Texture2D, TextureHandle);
         GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
     }
 
     public void Resize(int width, int height)
     {
-        Width = width; 
+        Width = width;
         Height = height;
 
         Console.Error.WriteLine("Frame buffer resizing");
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+        GL.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
 
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
+        GL.BindTexture(TextureTarget.Texture2D, TextureHandle);
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
+        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, TextureHandle, 0);
 
-        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
+        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, RenderBufferHandle);
         GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
-        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);
+        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, RenderBufferHandle);
 
         if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
         {
@@ -76,54 +73,41 @@ public class Fbo : IDisposable
         {
             Console.Error.WriteLine("Frame buffer resizing not complete");
         }
-    }
-
-    private void CreateBuffers(int width, int height)
-    {
-        _fbo = GL.GenFramebuffer();
-        GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
-
-        _textureColorBuffer = GL.GenTexture();
-
-        GL.BindTexture(TextureTarget.Texture2D, _textureColorBuffer);
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, width, height, 0, PixelFormat.Rgb, PixelType.UnsignedByte, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _textureColorBuffer, 0);
-
-        _rbo = GL.GenRenderbuffer();
-        GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _rbo);
-        GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
-        GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _rbo);
-
-        if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
-        {
-            Console.Error.WriteLine("Frame buffer complete");
-        }
-        else
-        {
-            Console.Error.WriteLine("Frame buffer not complete");
-        }
 
         GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 
+    private void CreateBuffers(int width, int height)
+    {
+        Handle = GL.GenFramebuffer();
+        TextureHandle = GL.GenTexture();
+        RenderBufferHandle = GL.GenRenderbuffer();
+
+        Resize(width, height);
+    }
+
     private void CreateQuad()
     {
-        _quadVao = GL.GenVertexArray();
-        _quadVbo = GL.GenBuffer();
+        QuadVbo = new(QUAD_VERTICES);
+        QuadVao = new();
 
-        GL.BindVertexArray(_quadVao);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _quadVbo);
-        GL.BufferData(BufferTarget.ArrayBuffer, QUAD_VERTICES.Length * sizeof(float), QUAD_VERTICES, BufferUsageHint.StaticDraw);
-        GL.EnableVertexAttribArray(0);
-        GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-        GL.EnableVertexAttribArray(1);
-        GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+        QuadVao.Bind();
+
+        var stride = 4 * sizeof(float);
+        QuadVao.Link(QuadVbo, 0, 2, VertexAttribPointerType.Float, stride, 0);
+        QuadVao.Link(QuadVbo, 1, 2, VertexAttribPointerType.Float, stride, 2 * sizeof(float));
+
+        QuadVao.Unbind();
+        QuadVbo.Unbind();
     }
 
     public void Dispose()
     {
-        
+        QuadVao.Dispose();
+        QuadVbo.Dispose();
+
+        GL.DeleteFramebuffer(Handle);
+        GL.DeleteRenderbuffer(RenderBufferHandle);
+        GL.DeleteTexture(TextureHandle);
     }
 }

@@ -1,4 +1,5 @@
-﻿using GPL.OpenGLApp.Core;
+﻿using GPL.OpenGLApp.Base;
+using GPL.OpenGLApp.Core;
 using GPL.OpenGLApp.Geometry;
 using GPL.OpenGLApp.Light;
 using OpenTK.Graphics.OpenGL4;
@@ -18,14 +19,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 })
 {
     private Random _random = new Random(42);
-    private Pyramid[] _pyramids = [];
-
     private LightBulb[] _lights;
-
-    private Sphere _sphere;
-
     private Camera _camera;
-    private Plane _plane;
 
     private DefaultShader _defaultShader;
     private ShaderProgram _lightShader;
@@ -38,6 +33,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
     private Texture texture0;
     private Texture texture1;
     private Texture texture2;
+
+    private Scene _scene;
 
     private Fbo _fbo;
 
@@ -55,7 +52,8 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
 
         _camera = new Camera(new(0f, 5f, 0f), (float)width / height);
 
-        _pyramids = Enumerable.Range(0, 10).Select(_ => new Pyramid()
+        _scene = new();
+        _scene.Add(Enumerable.Range(0, 10).Select(_ => new Pyramid()
         {
             Position = new Vector3
             (
@@ -63,17 +61,17 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
                 y: .01f,
                 z: (float)_random.NextDouble() * 15f - 7.5f
             )
-        }).ToArray();
+        }));
 
-        _sphere = new Sphere(12)
+        _scene.Add(new Sphere(12)
         {
             Position = new(-2f, .5f, 1.5f)
-        };
+        });
 
-        _plane = new Plane()
+        _scene.Add(new Plane()
         {
             Scale = new(10, 0, 10)
-        };
+        });
 
         _lights = Enumerable.Range(0, 4).Select(_ => new LightBulb()).ToArray();
 
@@ -110,17 +108,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         GL.Enable(EnableCap.DepthTest);
         GL.ClearColor(new Color4(30, 35, 49, 255));
     }
-
-    private int _quadVAO, _quadVBO;
-    private float[] quadVertices = [ 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    ];
 
     float t = 0;
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -169,20 +156,20 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         texture1.Bind(TextureUnit.Texture2);
         _defaultShader.Shader.SetInt("material.specular", 2);
 
+        
+
         _defaultShader.Setup(_camera);
 
         _defaultShader.Shader.SetMat4("view", _camera.GetViewMatrix());
         _defaultShader.Shader.SetMat4("projection", _camera.GetProjectionMatrix());
 
-        foreach (var cube in _pyramids)
-            Draw(_defaultShader.Shader, cube);
-
-        Draw(_defaultShader.Shader, _plane);
+        _scene.Update(_defaultShader.Shader);
 
         texture2.Bind(TextureUnit.Texture3);
-        _defaultShader.Shader.SetInt("material.diffuse", 3);        
+        _defaultShader.Shader.SetInt("material.diffuse", 3);
         _defaultShader.Shader.SetInt("material.specular", 3);
-        Draw(_defaultShader.Shader, _sphere);
+
+        // Draw(_defaultShader.Shader, _sphere);
 
         _lightShader.Use();
 
@@ -350,7 +337,6 @@ public class App(int width, int height, string title) : GameWindow(GameWindowSet
         base.Dispose();
 
         _defaultShader.Dispose();
-        Array.ForEach(_pyramids, c => c.Dispose());
-        _sphere.Dispose();
+        _scene.Dispose();
     }
 }

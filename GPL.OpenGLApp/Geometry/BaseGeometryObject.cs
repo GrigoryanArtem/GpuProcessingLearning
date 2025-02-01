@@ -31,6 +31,7 @@ public abstract class BaseGeometryObject : IGeometryObject
     public Vector3 Position { get; set; }
     public Quaternion Rotation { get; set; }
     public Vector3 Scale { get; set; }
+    public Material Material { get; set; }
 
     public void Draw()
     {
